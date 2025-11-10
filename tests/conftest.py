@@ -151,3 +151,41 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
+# ======================================================================================
+# Playwright Fixtures for E2E Tests
+# ======================================================================================
+import pytest
+from playwright.sync_api import sync_playwright
+
+@pytest.fixture(scope="session")
+def browser_context():
+    """
+    Provide a Playwright browser context for UI tests.
+    Installed by GitHub Actions via `playwright install`.
+    """
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=['--no-sandbox', '--disable-dev-shm-usage']
+        )
+        context = browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            ignore_https_errors=True
+        )
+        try:
+            yield context
+        finally:
+            context.close()
+            browser.close()
+
+
+@pytest.fixture
+def page(browser_context):
+    """
+    Provide a fresh page object for each E2E test.
+    """
+    page = browser_context.new_page()
+    try:
+        yield page
+    finally:
+        page.close()
