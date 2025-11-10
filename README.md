@@ -15,4 +15,7 @@ pytest -v
 
 You can pull the deployed image using:
 
+[docker pull cas228/module10:latest](https://hub.docker.com/r/cas228/module10)
+
 docker pull cas228/module10:latest
+docker run -d -p 8000:8000 cas228/module10:latest
