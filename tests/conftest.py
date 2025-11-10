@@ -189,3 +189,51 @@ def page(browser_context):
         yield page
     finally:
         page.close()
+# ======================================================================================
+# FastAPI Test Server Fixture (for E2E tests)
+# ======================================================================================
+import subprocess
+import time
+import requests
+import pytest
+
+def wait_for_server(url: str, timeout: int = 30):
+    """Wait for FastAPI server to start."""
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            r = requests.get(url)
+            if r.status_code == 200:
+                return True
+        except Exception:
+            pass
+        time.sleep(1)
+    return False
+
+@pytest.fixture(scope="session")
+def fastapi_server():
+    """
+    Start FastAPI server in background for E2E tests.
+    """
+    server_url = "http://127.0.0.1:8000/"
+
+    # Start FastAPI app (main.py)
+    process = subprocess.Popen(
+        ["python", "main.py"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    # Wait until it is reachable
+    if not wait_for_server(server_url, timeout=30):
+        process.terminate()
+        raise RuntimeError("FastAPI server failed to start for E2E tests")
+
+    yield  # Tests run here
+
+    # Cleanup
+    process.terminate()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
